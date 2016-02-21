@@ -38,8 +38,24 @@ var User = db.define('user', {
 
 // Even though the content belongs to users, we will setup the userId relationship later
 var Content = db.define('content', {
-    url: Sequelize.STRING,
-    title: Sequelize.STRING
+    url: {
+        type: Sequelize.STRING,
+        validate: {
+            isURL: {
+                args: {
+                    protocols: ['http','https'],
+                    require_protocol: true
+                }
+            },
+            notEmpty: true
+        }
+    },
+    title: {
+        type: Sequelize.STRING,
+        validate: {
+            notEmpty: true
+        }
+    }
 });
 
 // Even though a vote has a link to user and content, we will setup the relationship later
@@ -267,9 +283,34 @@ app.get('/createContent', function(request, response) {
     response.render('layout', {content: html});
 });
 app.post('/createContent', function(request, response) {
-    if (!request.curentUser) {
+    if (!request.currentUser) {
         response.redirect('/login?error=Login to add a post');
         return;
+    }
+    
+    var url = request.body.url && request.body.url.trim();
+    var title = request.body.title && request.body.title.trim();
+    if (url && title) {
+        request.currentUser.createContent({
+            url: request.body.url,
+            title: request.body.title
+        }).then(
+            function(content) {
+                response.redirect('/');
+            },
+            function(error) {
+                console.error(error);
+                if (error.message.indexOf('isURL') >= 0) {
+                    response.redirect('/createContent?error=Invalid URL!');
+                }
+                else {
+                    response.redirect('/createContent?error=Unknown error. Try again later');
+                }
+            }
+        )
+    }
+    else {
+        response.redirect('/createContent?error=URL and title required');
     }
 });
 
