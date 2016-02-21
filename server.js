@@ -117,7 +117,7 @@ app.get('/', function(request, response) {
     var html = HomePage.renderToHtml({
         layout: {
             title: 'Welcome to Reddit clone!',
-            loggedIn: request.currentUser.toJSON()
+            loggedIn: request.currentUser && request.currentUser.toJSON()
         },
         homepage: {
             contents: []
