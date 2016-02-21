@@ -1,3 +1,5 @@
+require('babel-register'); // This will let us require() files with JSX!
+
 /*
   PASSWORDS
 */
@@ -72,7 +74,7 @@ var cookieParser = require('cookie-parser');
 // initialization
 var app = express();
 app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(function checkLoginTokenAndMaybeSetLoggedInUser(request, response, next) {
    next(); 
@@ -95,8 +97,24 @@ app.post('/login', function(request, response) {
 });
 
 // signup
+var Signup = require('./components/Signup');
 app.get('/signup', function(request, response) {
+    if (request.currentUser) {
+        response.redirect('/');
+        return;
+    }
     
+    var html = Signup.renderToHtml({
+        layout: {
+            title: 'Signup',
+            loggedIn: false
+        },
+        signup: {
+            error: request.query.error // in case we pass an error string
+        }
+    });
+    
+    response.render('layout', {content: html});
 });
 app.post('/signup', function(request, response) {
     
