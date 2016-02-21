@@ -88,7 +88,19 @@ app.use(function checkLoginTokenAndMaybeSetLoggedInUser(request, response, next)
 */
 
 // homepage
+var HomePage = require('./components/HomePage');
 app.get('/', function(request, response) {
+    var html = HomePage.renderToHtml({
+        layout: {
+            title: 'Welcome to Reddit clone!',
+            loggedIn: !!request.currentUser
+        },
+        homepage: {
+            contents: []
+        }
+    });
+    
+    response.render('layout', {content: html});
 });
 
 // login
