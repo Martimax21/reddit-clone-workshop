@@ -89,8 +89,25 @@ app.get('/', function(request, response) {
 });
 
 // login
+var Login = require('./components/Login');
 app.get('/login', function(request, response) {
+    if (request.currentUser) {
+        response.redirect('/');
+        return;
+    }
     
+    var html = Login.renderToHtml({
+        layout: {
+            title: 'Login',
+            loggedIn: false
+        },
+        login: {
+            error: request.query.error, // in case we pass an error string
+            message: request.query.message // in case we have a message string
+        }
+    });
+    
+    response.render('layout', {content: html});
 });
 app.post('/login', function(request, response) {
     
