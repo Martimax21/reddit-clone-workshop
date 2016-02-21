@@ -73,6 +73,7 @@ var Session = db.define('session', {
 });
 
 User.hasMany(Content); // This will let us do user.addContent
+Content.belongsTo(User); // This will let us include: User in Content.findAll
 
 User.hasMany(Session); // This will let us do user.createSession
 Session.belongsTo(User); // This will let us do Session.findOne({include: User})
@@ -130,17 +131,50 @@ app.use(function checkLoginTokenAndMaybeSetLoggedInUser(request, response, next)
 // homepage
 var HomePage = require('./components/HomePage');
 app.get('/', function(request, response) {
-    var html = HomePage.renderToHtml({
-        layout: {
-            title: 'Welcome to Reddit clone!',
-            loggedIn: request.currentUser && request.currentUser.toJSON()
-        },
-        homepage: {
-            contents: []
-        }
-    });
     
-    response.render('layout', {content: html});
+    Content.findAll({
+        include: [
+            {model: Vote, attributes: []},
+            {model: User, attributes: ['username']}
+        ],
+        group: 'id',
+        attributes: {
+            include: [
+                [Sequelize.fn('SUM', Sequelize.col('voteDirection')), 'voteScore']
+            ]
+        },
+        order: [Sequelize.literal('voteScore DESC'), ['createdAt', 'DESC']],
+        limit: 25,
+        subQuery: false
+    }).then(
+        function(contents) {
+            
+            contents = contents.map(
+                function(item) {
+                    return {
+                        id: item.id,
+                        url: item.url,
+                        title: item.title,
+                        postedBy: item.user && item.user.username || 'Anonymous',
+                        voteScore: item.voteScore || 0
+                    }
+                }
+            );
+            
+            var html = HomePage.renderToHtml({
+                layout: {
+                    title: 'Welcome to Reddit clone!',
+                    loggedIn: request.currentUser && request.currentUser.toJSON()
+                },
+                homepage: {
+                    contents: contents
+                }
+            });
+            
+            response.render('layout', {content: html});
+        }
+    )
+    
 });
 
 // login
