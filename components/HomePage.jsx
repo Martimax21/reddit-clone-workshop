@@ -33,6 +33,16 @@ function Post(props) {
                 </a>
             </h2>
             <cite>Posted by {props.postedBy}</cite>
+            <form action="/vote" method="post">
+              <input type="hidden" name="contentId" value={props.id}/>
+              <input type="hidden" name="voteDirection" value="1"/>
+              <button type="submit">up vote</button>
+            </form>
+            <form action="/vote" method="post">
+              <input type="hidden" name="contentId" value={props.id}/>
+              <input type="hidden" name="voteDirection" value="-1"/>
+              <button type="submit">down vote</button>
+            </form>
         </div>
     );
 }

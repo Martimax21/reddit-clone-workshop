@@ -80,6 +80,7 @@ Session.belongsTo(User); // This will let us do Session.findOne({include: User})
 
 Content.belongsToMany(User, {through: Vote, as: 'Votes'});
 Content.hasMany(Vote); // This will let us retrieve the sum of votes per content
+User.hasMany(Vote); // This will let us do user.findVote
 
 // db.sync();
 
@@ -151,6 +152,7 @@ app.get('/', function(request, response) {
             
             contents = contents.map(
                 function(item) {
+                    item = item.toJSON();
                     return {
                         id: item.id,
                         url: item.url,
@@ -350,7 +352,53 @@ app.post('/createContent', function(request, response) {
 
 // vote
 app.post('/vote', function(request, response) {
+    if (!request.currentUser) {
+        response.redirect('/login?message=Login to vote');
+        return;
+    }
     
+    var contentId = request.body.contentId;
+    var voteDirection = request.body.voteDirection === '1' ? 1 : -1; 
+    
+    var contentQuery = Content.findById(contentId);
+    var voteQuery = Vote.findOne({
+        where: {
+            userId: request.currentUser.id,
+            contentId: contentId
+        }
+    });
+    
+    Promise.all([contentQuery, voteQuery]).then(
+        function(results) {
+            var content = results[0], vote = results[1];
+            if (!content) {
+                throw new Error('invalid content id');
+            }
+            
+            if (vote) {
+                var newVoteDirection = voteDirection === vote.voteDirection ? 0 : voteDirection;
+                
+                return vote.update({
+                    voteDirection: newVoteDirection
+                });
+            }
+            else {
+                return request.currentUser.createVote({
+                    contentId: contentId,
+                    voteDirection: voteDirection
+                });
+            }
+        }
+    ).then(
+        function(vote) {
+            response.redirect('/');
+        }
+    ).catch(
+        function(error) {
+            console.error(error);
+            response.redirect('/');
+        }
+    );
 });
 
 // Start the server
