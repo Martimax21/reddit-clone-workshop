@@ -80,7 +80,31 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(function checkLoginTokenAndMaybeSetLoggedInUser(request, response, next) {
-   next(); 
+   if (request.cookies && request.cookies.SESSION) {
+       Session.findOne({
+           where: {
+               token: request.cookies.SESSION
+           },
+           include: User
+       }).then(
+         function(sessionObj) {
+             if (sessionObj && sessionObj.user) {
+                 request.currentUser = sessionObj.user;
+             }
+             else {
+                 response.clearCookie('SESSION');
+             }
+             next();
+         },
+         function(error) {
+             console.error(error);
+             next();
+         }
+       );
+   }
+   else {
+       next();
+   }
 });
 
 /*
@@ -93,7 +117,7 @@ app.get('/', function(request, response) {
     var html = HomePage.renderToHtml({
         layout: {
             title: 'Welcome to Reddit clone!',
-            loggedIn: !!request.currentUser
+            loggedIn: request.currentUser.toJSON()
         },
         homepage: {
             contents: []

@@ -5,7 +5,7 @@ function Layout(props) {
     return (
         <div>
             <nav>
-                {props.isLoggedIn ? <LoggedInNav/> : <LoggedOutNav/>}
+                {props.loggedIn ? <LoggedInNav username={props.loggedIn.username}/> : <LoggedOutNav/>}
             </nav>
             <main>
                 <h1>{props.title || 'Reddit Clone'}</h1>
@@ -15,9 +15,12 @@ function Layout(props) {
     )
 }
 
-function LoggedInNav() {
+function LoggedInNav(props) {
     return (
         <ul>
+            <li>
+                ({props.username})
+            </li>
             <li>
                 <a href="/">Home</a>
             </li>
