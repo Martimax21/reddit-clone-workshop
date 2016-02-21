@@ -247,11 +247,30 @@ app.post('/signup', function(request, response) {
 });
 
 // create
+var CreateContent = require('./components/CreateContent');
 app.get('/createContent', function(request, response) {
+    if (!request.currentUser) {
+        response.redirect('/login?error=Login to add a post');
+        return;
+    }
     
+    var html = CreateContent.renderToHtml({
+        layout: {
+            title: 'Create a new post',
+            loggedIn: request.currentUser && request.currentUser.toJSON()
+        },
+        createContent: {
+            error: request.query.error
+        }
+    });
+    
+    response.render('layout', {content: html});
 });
 app.post('/createContent', function(request, response) {
-    
+    if (!request.curentUser) {
+        response.redirect('/login?error=Login to add a post');
+        return;
+    }
 });
 
 // vote
