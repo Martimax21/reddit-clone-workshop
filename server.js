@@ -15,7 +15,7 @@ var comparePasswordToHash = bcrypt.compareSync;
   DATA MODELS AND RELATIONS
 */
 var Sequelize = require('sequelize');
-var db = new Sequelize('meow', 'ziad_saab', '', {
+var db = new Sequelize('reddit', 'ziad_saab', '', {
     dialect: 'mysql'
 });
 
@@ -61,7 +61,7 @@ Session.belongsTo(User); // This will let us do Session.findOne({include: User})
 Content.belongsToMany(User, {through: Vote, as: 'Votes'});
 Content.hasMany(Vote); // This will let us retrieve the sum of votes per content
 
-
+// db.sync();
 
 /*
   EXPRESS
@@ -117,7 +117,35 @@ app.get('/signup', function(request, response) {
     response.render('layout', {content: html});
 });
 app.post('/signup', function(request, response) {
+    if (request.currentUser) {
+        response.redirect('/');
+        return;
+    }
     
+    var username = request.body.username.trim();
+    var password = request.body.password;
+    
+    if (username && password) {
+        User.create({
+            username: username,
+            password: password
+        }).then(
+            function(userObj) {
+                response.redirect('/login?message=User has been created. Please login.')
+            },
+            function(errorObj) {
+                if (errorObj.name === 'SequelizeUniqueConstraintError') {
+                    response.redirect('/signup?error=Username already exists');
+                }
+                else {
+                    response.redirect('/signup?error=Unexpected server error. Please try again later')
+                }
+            }
+        );
+    }
+    else {
+        response.redirect('/signup?error=username and password must be provided');
+    }
 });
 
 // create
