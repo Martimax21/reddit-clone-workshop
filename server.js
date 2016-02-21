@@ -4,12 +4,15 @@ require('babel-register'); // This will let us require() files with JSX!
   PASSWORDS
 */
 var bcrypt = require('bcrypt');
+var secureRandom = require('secure-random');
+
 function hashPassword(password) {
     return bcrypt.hashSync(password, 10);
 }
 var comparePasswordToHash = bcrypt.compareSync;
-
-
+function createSessionToken() {
+    return secureRandom.randomArray(40).map(code => code.toString(36)).join('');
+}
 
 /*
   DATA MODELS AND RELATIONS
@@ -110,7 +113,49 @@ app.get('/login', function(request, response) {
     response.render('layout', {content: html});
 });
 app.post('/login', function(request, response) {
+    if (request.currentUser) {
+        response.redirect('/');
+        return;
+    }
     
+    var username = (request.body.username || '').trim();
+    var password = request.body.password;
+    
+    if (username && password) {
+        User.findOne({
+            where: {
+                username: username
+            }
+        }).then(
+            function(userObj) {
+                if (userObj) {
+                    if (comparePasswordToHash(password, userObj.hashed_password)) {
+                        userObj.createSession({
+                            token: createSessionToken()
+                        }).then(
+                            function(session) {
+                                response.cookie('SESSION', session.token);
+                                response.redirect('/');
+                            },
+                            function(error) {
+                                console.error(error);
+                                response.redirect('/login?error=Unknown error. Please try again later');
+                            }
+                        );
+                    }
+                    else {
+                        response.redirect('/login?error=Invalid username or password');
+                    }
+                }
+                else {
+                    response.redirect('/login?error=Invalid username or password');
+                }
+            }
+        );
+    }
+    else {
+        response.redirect('/login?error=Username and password required.')
+    }
 });
 
 // signup
@@ -139,7 +184,7 @@ app.post('/signup', function(request, response) {
         return;
     }
     
-    var username = request.body.username.trim();
+    var username = (request.body.username || '').trim();
     var password = request.body.password;
     
     if (username && password) {
